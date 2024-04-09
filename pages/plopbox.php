@@ -18,7 +18,7 @@ $page_title = "Clipart Plop Box";
 
 $nav_plopbox_class = "active_page";
 
-// TODO: 4a. Set maximum file size for uploaded files.
+// Set maximum file size for uploaded files.
 // MAX_FILE_SIZE must be set to bytes
 // 1 MB = 1000000 bytes
 define("MAX_FILE_SIZE", 1000000);
@@ -41,8 +41,8 @@ if (isset($_POST["upload"])) {
     $upload_source = NULL;
   }
 
-  // TODO: 6. get the uploaded file data
-  $upload = null;
+  // get the info about the uploaded files.
+  $upload = $_FILES["svg-file"];
 
   // Assume the form is valid...
   $form_valid = true;
@@ -51,18 +51,17 @@ if (isset($_POST["upload"])) {
   if ($upload["error"] == UPLOAD_ERR_OK) {
     // The upload was successful!
 
-    // TODO: 7. validate the uploaded file data (uncomment the code below)
-    // // Get the name of the uploaded file without any path
-    // $upload_file_name = basename($upload["name"]);
+    // Get the name of the uploaded file without any path
+    $upload_file_name = basename($upload["name"]);
 
-    // // Get the file extension of the uploaded file and convert to lowercase for consistency in DB
-    // $upload_file_ext = strtolower(pathinfo($upload_file_name, PATHINFO_EXTENSION));
+    // Get the file extension of the uploaded file and convert to lowercase for consistency in DB
+    $upload_file_ext = strtolower(pathinfo($upload_file_name, PATHINFO_EXTENSION));
 
-    // // This site only accepts SVG files!
-    // if (!in_array($upload_file_ext, array("svg"))) {
-    //   $form_valid = false;
-    //   $upload_feedback["general_error"] = true;
-    // }
+    // This site only accepts SVG files!
+    if (!in_array($upload_file_ext, array("svg"))) {
+      $form_valid = false;
+      $upload_feedback["general_error"] = true;
+    }
   } else if (($upload["error"] == UPLOAD_ERR_INI_SIZE) || ($upload["error"] == UPLOAD_ERR_FORM_SIZE)) {
     // file was too big, let's try again
     $form_valid = false;
@@ -89,20 +88,19 @@ if (isset($_POST["upload"])) {
       // We successfully inserted the record into the database, now we need to
       // move the uploaded file to it's final resting place: public/uploads directory
 
-      // TODO: 8. get the newly inserted record's id
-      $record_id = 0;
+      // get the newly inserted record's id
+      $record_id = $db->lastInsertId("id");
 
       // uploaded file should be in folder with same name as table with the primary key as the filename.
       // Note: THIS IS NOT A URL; this is a FILE PATH on the server!
       //       Do NOT include / at the beginning of the path; path should be a relative path.
       //          NO: /public/...
       //         YES:  public/...
-      $upload_storage_path = "TODO: 9. set the path (NOT THE URL) to store the uploaded file";
+      $upload_storage_path = "public/uploads/clipart/" . $record_id . "." . $upload_file_ext;
 
       // Move the file to the public/uploads/clipart folder
       // Note: THIS FUNCTION REQUIRES A PATH. NOT A URL!
-      // TODO: 10. move the uploaded file to the storage path
-      if (move_uploaded_file("TODO: 10a. temporary uploaded file location", "TODO: 10b. storage path of uploaded file") == false) {
+      if (move_uploaded_file($upload["tmp_name"], $upload_storage_path) == false) {
         error_log("Failed to permanently store the uploaded file on the file server. Please check that the server folder exists.");
       }
     }
@@ -162,14 +160,10 @@ $records = exec_sql_query(
     <section class="upload">
       <h2>Upload Clipart</h2>
 
-      <!-- TODO: 1. use POST HTTP method -->
-      <!-- TODO: 2. set enctype attribute to multipart/form-data -->
-      <form action="/plopbox" method="post">
+      <form action="/plopbox" method="post" enctype="multipart/form-data">
 
-        <!-- TODO: 5. MAX_FILE_SIZE must precede the file input field -->
-
-        <!-- TODO: 4b. add hidden input field with name MAX_FILE_SIZE and value of MAX_FILE_SIZE constant -->
-        <!-- <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo MAX_FILE_SIZE; ?>"> -->
+        <!-- MAX_FILE_SIZE must precede the file input field -->
+        <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo MAX_FILE_SIZE; ?>">
 
         <?php if ($upload_feedback["too_large"]) { ?>
           <p class="feedback">We're sorry. The file failed to upload because it was too big. Please select a file that&apos;s no larger than 1MB.</p>
@@ -182,9 +176,7 @@ $records = exec_sql_query(
         <div class="label-input">
           <label for="upload-file">SVG File:</label>
           <!-- This site only accepts SVG files! -->
-
-          <!-- TODO: 3. add file input -->
-          <input id="upload-file" name="svg-file" accept=".svg,image/svg+xml">
+          <input id="upload-file" type="file" name="svg-file" accept=".svg,image/svg+xml">
         </div>
 
         <div class="label-input">
